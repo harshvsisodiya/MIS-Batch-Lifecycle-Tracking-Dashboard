@@ -3,11 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <title>{% block title %}MIS Dashboard{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
   <nav>
-    <div class="brand">MIS Batch Lifecycle Tracker</div>
-    <a href="/">Dashboard</a>
+    <div class="brand">MIS Batch Lifecycle Tracker<small>Ops Console &middot; SOP Compliance</small></div>
+    <a href="{{ url_for('dashboard') }}">Dashboard</a>
+    <a href="{{ url_for('batches') }}">All Batches</a>
+    <a href="{{ url_for('new_batch') }}">+ New Batch</a>
   </nav>
   <main>
     {% block content %}{% endblock %}

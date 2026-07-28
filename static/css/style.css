@@ -1,0 +1,15 @@
+:root {
+    --bg: #121820;
+    --panel: #1a222c;
+    --panel-border: #2a3742;
+    --text: #e7edf3;
+    --muted: #7d90a1;
+    --accent: #35c5e0;
+}
+
+body {
+    font-family: 'Inter', Arial, sans-serif;
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+}
