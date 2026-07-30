@@ -1,5 +1,6 @@
 import os
 import sqlite3
+from datetime import datetime
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "mis_dashboard.db")
@@ -33,3 +34,19 @@ def init_db():
     ''')
     conn.commit()
     conn.close()
+
+def create_batch(name, owner, sop_deadline_days):
+    conn = get_conn()
+    now = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    cur = conn.execute(
+        "INSERT INTO batches (name, owner, sop_deadline_days, created_at, current_status) VALUES (?, ?, ?, ?, ?)",
+        (name, owner, sop_deadline_days, now, STAGES[0])
+    )
+    batch_id = cur.lastrowid
+    conn.execute(
+        "INSERT INTO status_log (batch_id, old_status, new_status, changed_at) VALUES (?, NULL, ?, ?)",
+        (batch_id, STAGES[0], now)
+    )
+    conn.commit()
+    conn.close()
+    return batch_id
