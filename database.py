@@ -56,3 +56,25 @@ def create_batch(name, owner, sop_deadline_days):
     conn.commit()
     conn.close()
     return batch_id
+
+def advance_batch(batch_id):
+    conn = get_conn()
+    row = conn.execute("SELECT * FROM batches WHERE id = ?", (batch_id,)).fetchone()
+    if not row:
+        conn.close()
+        return False
+
+    nxt = next_stage(row["current_status"])
+    if not nxt:
+        conn.close()
+        return False
+
+    now = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    conn.execute(
+        "INSERT INTO status_log (batch_id, old_status, new_status, changed_at) VALUES (?, ?, ?, ?)",
+        (batch_id, row["current_status"], nxt, now)
+    )
+    conn.execute("UPDATE batches SET current_status = ? WHERE id = ?", (nxt, batch_id))
+    conn.commit()
+    conn.close()
+    return True
