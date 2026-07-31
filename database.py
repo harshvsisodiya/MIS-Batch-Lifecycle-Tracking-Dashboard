@@ -35,6 +35,12 @@ def init_db():
     conn.commit()
     conn.close()
 
+def next_stage(current):
+    idx = STAGES.index(current)
+    if idx + 1 < len(STAGES):
+        return STAGES[idx + 1]
+    return None
+
 def create_batch(name, owner, sop_deadline_days):
     conn = get_conn()
     now = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
