@@ -79,6 +79,12 @@ def advance_batch(batch_id):
     conn.close()
     return True
 
+def all_batches():
+    conn = get_conn()
+    rows = conn.execute("SELECT * FROM batches ORDER BY id DESC").fetchall()
+    conn.close()
+    return rows
+
 def get_batch(batch_id):
     conn = get_conn()
     row = conn.execute("SELECT * FROM batches WHERE id = ?", (batch_id,)).fetchone()
