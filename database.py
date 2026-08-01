@@ -78,3 +78,18 @@ def advance_batch(batch_id):
     conn.commit()
     conn.close()
     return True
+
+def get_batch(batch_id):
+    conn = get_conn()
+    row = conn.execute("SELECT * FROM batches WHERE id = ?", (batch_id,)).fetchone()
+    conn.close()
+    return row
+
+def get_status_log(batch_id):
+    conn = get_conn()
+    rows = conn.execute(
+        "SELECT * FROM status_log WHERE batch_id = ? ORDER BY changed_at ASC",
+        (batch_id,)
+    ).fetchall()
+    conn.close()
+    return rows
