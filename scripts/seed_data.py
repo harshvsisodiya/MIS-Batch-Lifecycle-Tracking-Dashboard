@@ -1,0 +1,6 @@
+import os, sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+import database as db
+
+db.init_db()
+print('Seed script initialized')
