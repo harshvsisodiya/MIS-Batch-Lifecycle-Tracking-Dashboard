@@ -15,6 +15,13 @@ def batches():
 
 @app.route("/batches/new", methods=["GET", "POST"])
 def new_batch():
+    if request.method == "POST":
+        name = request.form["name"].strip()
+        owner = request.form["owner"].strip()
+        deadline = int(request.form.get("sop_deadline_days", 7))
+        if name and owner:
+            db.create_batch(name, owner, deadline)
+        return redirect(url_for("batches"))
     return render_template("add_batch.html")
 
 if __name__ == "__main__":
