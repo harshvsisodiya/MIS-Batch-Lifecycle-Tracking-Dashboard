@@ -24,5 +24,11 @@ def new_batch():
         return redirect(url_for("batches"))
     return render_template("add_batch.html")
 
+@app.route("/batches/<int:batch_id>")
+def batch_detail(batch_id):
+    b = db.get_batch(batch_id)
+    log = db.get_status_log(batch_id)
+    return render_template("batch_detail.html", batch=b, log=log)
+
 if __name__ == "__main__":
     app.run(debug=True)
