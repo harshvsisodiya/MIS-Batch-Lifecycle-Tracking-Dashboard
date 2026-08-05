@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Batch Detail{% endblock %}
+{% block content %}
+  <h2>{{ batch.name }}</h2>
+  <div class="panel">
+    <div>
+      <span class="mono" style="color: var(--muted);">OWNER</span><br>
+      <strong>{{ batch.owner }}</strong>
+    </div>
+    <div style="margin-top: 14px;">
+      <div style="display:flex; align-items:center;">
+        <div class="track">
+          {% for stage in stages %}
+            {% set i = loop.index0 %}
+            {% if i > 0 %}<div class="seg {% if i <= stage_index %}done{% endif %}"></div>{% endif %}
+            {% if i < stage_index %}
+            <div class="node done" title="{{ stage }}"></div>
+            {% elif i == stage_index %}
+            <div class="node current-{{ health }}" title="{{ stage }}"></div>
+            {% else %}
+            <div class="node" title="{{ stage }}"></div>
+            {% endif %}
+          {% endfor %}
+        </div>
+        {% if batch.current_status == 'Closed' %}
+          <span class="track-label {{ health }}">{{ batch.current_status }} &middot; {{ 'ON TIME' if health == 'green' else 'LATE' }}</span>
+        {% else %}
+          <span class="track-label {{ health }}">{{ batch.current_status }} &middot; {{ 'OVERDUE' if health == 'red' else 'ON TRACK' }}</span>
+        {% endif %}
+      </div>
+    </div>
+    <div style="margin-top: 14px;" class="mono">Created: {{ batch.created_at }} &nbsp;|&nbsp; Deadline: {{ batch.sop_deadline_days }} days</div>
+  </div>
+
+  <div class="panel">
+    <h3>Status History</h3>
+    <table>
+      <tr><th>From</th><th>To</th><th>Timestamp</th></tr>
+      {% for entry in log %}
+      <tr>
+        <td class="mono">{{ entry.old_status or '\u2014' }}</td>
+        <td class="mono">{{ entry.new_status }}</td>
+        <td class="mono">{{ entry.changed_at }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+{% endblock %}
