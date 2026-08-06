@@ -24,6 +24,11 @@ def new_batch():
         return redirect(url_for("batches"))
     return render_template("add_batch.html")
 
+@app.route("/batches/<int:batch_id>/advance", methods=["POST"])
+def advance(batch_id):
+    db.advance_batch(batch_id)
+    return redirect(url_for("batches"))
+
 @app.route("/batches/<int:batch_id>")
 def batch_detail(batch_id):
     b = db.get_batch(batch_id)
