@@ -1,6 +1,6 @@
 import os
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "mis_dashboard.db")
@@ -99,3 +99,28 @@ def get_status_log(batch_id):
     ).fetchall()
     conn.close()
     return rows
+
+def batch_health(batch_id):
+    conn = get_conn()
+    b = conn.execute("SELECT * FROM batches WHERE id = ?", (batch_id,)).fetchone()
+    if not b:
+        conn.close()
+        return None
+
+    created = datetime.strptime(b["created_at"], "%Y-%m-%d %H:%M:%S")
+    deadline = created + timedelta(days=b["sop_deadline_days"])
+
+    if b["current_status"] == "Closed":
+        row = conn.execute(
+            "SELECT changed_at FROM status_log WHERE batch_id = ? AND new_status = 'Closed' ORDER BY changed_at DESC LIMIT 1",
+            (batch_id,)
+        ).fetchone()
+        conn.close()
+        if not row:
+            return "green"
+        closed_at = datetime.strptime(row["changed_at"], "%Y-%m-%d %H:%M:%S")
+        return "green" if closed_at <= deadline else "red"
+    else:
+        conn.close()
+        now = datetime.utcnow()
+        return "red" if now > deadline else "amber"
