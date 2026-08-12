@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, jsonify
 import database as db
 
 app = Flask(__name__)
@@ -6,12 +6,24 @@ db.init_db()
 
 @app.route("/")
 def dashboard():
-    return "Dashboard"
+    stats = db.compute_stats()
+    return render_template("dashboard.html", stats=stats, stages=db.STAGES)
+
+@app.route("/api/stats")
+def api_stats():
+    return jsonify(db.compute_stats())
 
 @app.route("/batches")
 def batches():
     rows = db.all_batches()
-    return render_template("batches.html", batches=rows, stages=db.STAGES)
+    enriched = []
+    for b in rows:
+        enriched.append({
+            "batch": b,
+            "stage_index": db.STAGES.index(b["current_status"]),
+            "health": db.batch_health(b["id"]),
+        })
+    return render_template("batches.html", batches=enriched, stages=db.STAGES)
 
 @app.route("/batches/new", methods=["GET", "POST"])
 def new_batch():
@@ -33,7 +45,9 @@ def advance(batch_id):
 def batch_detail(batch_id):
     b = db.get_batch(batch_id)
     log = db.get_status_log(batch_id)
-    return render_template("batch_detail.html", batch=b, log=log)
+    stage_index = db.STAGES.index(b["current_status"]) if b else 0
+    health = db.batch_health(batch_id)
+    return render_template("batch_detail.html", batch=b, log=log, stages=db.STAGES, stage_index=stage_index, health=health)
 
 if __name__ == "__main__":
     app.run(debug=True)
