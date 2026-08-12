@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - MIS Dashboard{% endblock %}
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+    <h2>Dashboard Overview</h2>
+    <div style="display: flex; gap: 10px;">
+        <a href="{{ url_for('new_batch') }}" class="btn" style="background: var(--accent); color: #0d1319; font-weight: 600;">+ New Batch</a>
+        <a href="{{ url_for('export_csv') }}" class="btn">&darr; Export CSV</a>
+    </div>
+</div>
+
+<div class="readout-row">
+    <div class="readout">
+        <div class="label">Total Batches</div>
+        <div class="value">{{ stats.total_batches }}</div>
+    </div>
+    <div class="readout">
+        <div class="label">Avg Cycle Time</div>
+        <div class="value">
+            {% if stats.closed_count > 0 %}
+            {{ stats.avg_cycle_hours }}h
+            <span style="font-size: 14px; font-weight: normal; color: var(--muted);">
+                ({{ ((stats.avg_cycle_hours or 0) / 24) | round(1) }} days)
+            </span>
+            {% else %}
+            <span style="color: var(--muted); font-size: 24px;">N/A</span>
+            {% endif %}
+        </div>
+    </div>
+    <div class="readout">
+        <div class="label">SOP Compliance</div>
+        {% if stats.closed_count > 0 %}
+            {% if stats.compliance_pct >= 80 %}
+            <div class="value" style="color: var(--green);">{{ stats.compliance_pct }}%</div>
+            {% elif stats.compliance_pct >= 60 %}
+            <div class="value" style="color: var(--amber);">{{ stats.compliance_pct }}%</div>
+            {% else %}
+            <div class="value" style="color: var(--red);">{{ stats.compliance_pct }}%</div>
+            {% endif %}
+        {% else %}
+            <div class="value" style="color: var(--muted); font-size: 24px;">N/A</div>
+        {% endif %}
+    </div>
+    <div class="readout">
+        <div class="label">Closed Batches</div>
+        <div class="value">
+            {{ stats.closed_count }}
+            <span style="font-size: 14px; font-weight: normal; color: var(--green);">
+                ({{ stats.on_time_count }} on-time)
+            </span>
+        </div>
+    </div>
+</div>
+
+<div class="charts-grid" style="margin-bottom: 22px;">
+    <div class="panel" style="margin-bottom: 0;">
+        <h3>Batch Distribution</h3>
+        <div style="position: relative; height: 260px;">
+            <canvas id="statusChart"></canvas>
+        </div>
+    </div>
+    <div class="panel" style="margin-bottom: 0;">
+        <h3>SOP Compliance</h3>
+        <div style="position: relative; height: 260px;">
+            <canvas id="complianceChart"></canvas>
+        </div>
+    </div>
+</div>
+
+{% if recent_batches %}
+<div class="panel">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+        <h3 style="margin: 0;">Recent Batches</h3>
+        <a href="{{ url_for('batches') }}" style="color: var(--accent); font-size: 12px; text-decoration: none;">View All &rarr;</a>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Batch Name</th>
+                <th>Owner</th>
+                <th>Status</th>
+                <th>Created</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for entry in recent_batches %}
+            {% set b = entry.batch %}
+            <tr>
+                <td class="mono">#{{ "%03d"|format(b.id) }}</td>
+                <td><a class="rowlink" href="{{ url_for('batch_detail', batch_id=b.id) }}"><strong>{{ b.name }}</strong></a></td>
+                <td>{{ b.owner }}</td>
+                <td>
+                    <div style="display: flex; align-items: center;">
+                        <div class="track">
+                            {% for stage in stages %}
+                            {% set i = loop.index0 %}
+                            {% if i > 0 %}<div class="seg {% if i <= entry.stage_index %}done{% endif %}"></div>{% endif %}
+                            {% if i < entry.stage_index %}
+                            <div class="node done" title="{{ stage }}"></div>
+                            {% elif i == entry.stage_index %}
+                            <div class="node current-{{ entry.health }}" title="{{ stage }}"></div>
+                            {% else %}
+                            <div class="node" title="{{ stage }}"></div>
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+                        {% if b.current_status == 'Closed' %}
+                        <span class="track-label {{ entry.health }}">{{ b.current_status }} &middot; {{ 'ON TIME' if entry.health == 'green' else 'LATE' }}</span>
+                        {% else %}
+                        <span class="track-label {{ entry.health }}">{{ b.current_status }} &middot; {{ 'OVERDUE' if entry.health == 'red' else 'ON TRACK' }}</span>
+                        {% endif %}
+                    </div>
+                </td>
+                <td class="mono">{{ b.created_at[:10] }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+    var stages = {{ stages | tojson | safe }};
+    var distribution = {{ stats.distribution | tojson | safe }};
+    var counts = stages.map(function(s) { return distribution[s] || 0; });
+
+    new Chart(document.getElementById('statusChart'), {
+        type: 'bar',
+        data: {
+            labels: stages,
+            datasets: [{
+                label: 'Batches',
+                data: counts,
+                backgroundColor: ['#35c5e0', '#ffb347', '#c084fc', '#60a5fa', '#3ddc84'],
+                borderRadius: 4,
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { stepSize: 1, color: '#7d90a1' },
+                    grid: { color: '#2a3742' }
+                },
+                x: {
+                    ticks: { color: '#e7edf3' },
+                    grid: { display: false }
+                }
+            }
+        }
+    });
+
+    var onTime = {{ stats.on_time_count or 0 }};
+    var closedCount = {{ stats.closed_count or 0 }};
+    var overdue = closedCount - onTime;
+
+    new Chart(document.getElementById('complianceChart'), {
+        type: 'doughnut',
+        data: {
+            labels: closedCount > 0 ? ['On Time', 'Overdue'] : ['No Closed Batches'],
+            datasets: [{
+                data: closedCount > 0 ? [onTime, overdue] : [1],
+                backgroundColor: closedCount > 0 ? ['#3ddc84', '#ff6161'] : ['#34424e'],
+                borderColor: '#1a222c',
+                borderWidth: 3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '65%',
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { color: '#e7edf3', padding: 16 }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}
