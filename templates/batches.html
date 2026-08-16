@@ -1,27 +1,135 @@
 {% extends "base.html" %}
 {% block title %}All Batches - MIS Dashboard{% endblock %}
 {% block content %}
-<h2>All Batches ({{ batches | length }})</h2>
-<table>
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Name</th>
-            <th>Owner</th>
-            <th>Status</th>
-            <th>Created</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for b in batches %}
-        <tr>
-            <td>#{{ b.id }}</td>
-            <td>{{ b.name }}</td>
-            <td>{{ b.owner }}</td>
-            <td>{{ b.current_status }}</td>
-            <td>{{ b.created_at[:10] }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+    <h2>All Batches ({{ batches | length }})</h2>
+    <div style="display: flex; gap: 10px;">
+        <a href="{{ url_for('new_batch') }}" class="btn" style="background: var(--accent); color: #0d1319; font-weight: 600;">
+            + Create Batch
+        </a>
+        <a href="{{ url_for('export_csv') }}" class="btn">
+            &darr; Export CSV
+        </a>
+    </div>
+</div>
+
+<div class="panel" style="padding: 14px 18px; margin-bottom: 18px; display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
+    <div style="flex: 2; min-width: 220px;">
+        <input type="text" id="searchInput" placeholder="Search by batch name or owner..." onkeyup="filterTable()">
+    </div>
+    <div style="flex: 1; min-width: 160px;">
+        <select id="statusFilter" onchange="filterTable()">
+            <option value="">All Stages</option>
+            {% for s in stages %}
+            <option value="{{ s }}">{{ s }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div style="flex: 1; min-width: 140px;">
+        <select id="healthFilter" onchange="filterTable()">
+            <option value="">All Statuses</option>
+            <option value="green">On-Time</option>
+            <option value="amber">Active</option>
+            <option value="red">Late / Overdue</option>
+        </select>
+    </div>
+</div>
+
+<div class="panel">
+    <table id="batchesTable">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Batch Name</th>
+                <th>Owner</th>
+                <th>Pipeline Status</th>
+                <th>Created Date</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for entry in batches %}
+            {% set b = entry.batch %}
+            <tr class="batch-row" data-status="{{ b.current_status }}" data-health="{{ entry.health }}">
+                <td class="mono">#{{ "%03d"|format(b.id) }}</td>
+                <td>
+                    <a class="rowlink" href="{{ url_for('batch_detail', batch_id=b.id) }}">
+                        <strong>{{ b.name }}</strong>
+                    </a>
+                    <div class="mono" style="font-size: 11px; color: var(--muted); margin-top: 3px;">
+                        Deadline: {{ b.sop_deadline_days }} Days
+                    </div>
+                </td>
+                <td>{{ b.owner }}</td>
+                <td>
+                    <div style="display: flex; align-items: center;">
+                        <div class="track">
+                            {% for stage in stages %}
+                            {% set i = loop.index0 %}
+                            {% if i > 0 %}
+                            <div class="seg {% if i <= entry.stage_index %}done{% endif %}"></div>
+                            {% endif %}
+                            {% if i < entry.stage_index %}
+                            <div class="node done" title="{{ stage }}"></div>
+                            {% elif i == entry.stage_index %}
+                            <div class="node current-{{ entry.health }}" title="{{ stage }}"></div>
+                            {% else %}
+                            <div class="node" title="{{ stage }}"></div>
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+                        {% if b.current_status == 'Closed' %}
+                        <span class="track-label {{ entry.health }}">{{ b.current_status }} &middot; {{ 'ON TIME' if entry.health == 'green' else 'LATE' }}</span>
+                        {% else %}
+                        <span class="track-label {{ entry.health }}">{{ b.current_status }} &middot; {{ 'OVERDUE' if entry.health == 'red' else 'ON TRACK' }}</span>
+                        {% endif %}
+                    </div>
+                </td>
+                <td class="mono">{{ b.created_at[:10] }}</td>
+                <td>
+                    {% if b.current_status != 'Closed' %}
+                    <form class="inline" method="post" action="{{ url_for('advance', batch_id=b.id) }}">
+                        <button type="submit">Advance &rarr;</button>
+                    </form>
+                    {% else %}
+                    <span class="mono" style="color: var(--muted); font-size: 11px;">Completed</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div id="noResults" style="display: none; padding: 24px; text-align: center; color: var(--muted);" class="mono">
+        No matching batches found.
+    </div>
+</div>
+
+<script>
+    function filterTable() {
+        const search = document.getElementById("searchInput").value.toLowerCase();
+        const status = document.getElementById("statusFilter").value;
+        const health = document.getElementById("healthFilter").value;
+        const rows = document.querySelectorAll(".batch-row");
+        let visibleCount = 0;
+
+        rows.forEach((row) => {
+            const text = row.innerText.toLowerCase();
+            const rowStatus = row.getAttribute("data-status");
+            const rowHealth = row.getAttribute("data-health");
+
+            const matchesSearch = text.includes(search);
+            const matchesStatus = !status || rowStatus === status;
+            const matchesHealth = !health || rowHealth === health;
+
+            if (matchesSearch && matchesStatus && matchesHealth) {
+                row.style.display = "";
+                visibleCount++;
+            } else {
+                row.style.display = "none";
+            }
+        });
+
+        document.getElementById("noResults").style.display = visibleCount === 0 ? "block" : "none";
+    }
+</script>
 {% endblock %}
