@@ -61,8 +61,10 @@ def advance(batch_id):
 @app.route("/batches/<int:batch_id>")
 def batch_detail(batch_id):
     b = db.get_batch(batch_id)
+    if not b:
+        return redirect(url_for("batches"))
     log = db.get_status_log(batch_id)
-    stage_index = db.STAGES.index(b["current_status"]) if b else 0
+    stage_index = db.STAGES.index(b["current_status"])
     health = db.batch_health(batch_id)
     return render_template("batch_detail.html", batch=b, log=log, stages=db.STAGES, stage_index=stage_index, health=health)
 
