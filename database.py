@@ -11,6 +11,7 @@ STAGES = ["Initiated", "In Progress", "Under Review", "Completed", "Closed"]
 def get_conn():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON;")
     return conn
 
 
@@ -33,6 +34,8 @@ def init_db():
             new_status  TEXT NOT NULL,
             changed_at  TEXT NOT NULL
         );
+
+        CREATE INDEX IF NOT EXISTS idx_status_log_batch ON status_log(batch_id);
     """)
     conn.commit()
     conn.close()
