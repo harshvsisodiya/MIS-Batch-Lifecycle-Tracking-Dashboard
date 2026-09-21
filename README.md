@@ -18,6 +18,23 @@ python scripts/seed_data.py   # seeds 25 sample batches
 python app.py                 # starts at http://127.0.0.1:5000
 ```
 
+## Screenshots
+
+### Dashboard Overview
+![MIS Dashboard](screenshots/mis_dashboard.png)
+
+### Recent Batches
+![Recent Batches](screenshots/recent_batches.png)
+
+### All Batches
+![All Batches](screenshots/all_batches.png)
+
+### Batch Lifecycle Details
+![Batch Details](screenshots/batch_details.png)
+
+### Create New Batch
+![Add Batch](screenshots/new_batch.png)
+
 ## Project structure
 
 ```
@@ -26,17 +43,17 @@ mis-dashboard/
 ├── database.py          # db schema + queries + metrics
 ├── requirements.txt
 ├── mis_dashboard.db     # sqlite db (auto-created)
+├── screenshots/         # UI screenshots
 ├── scripts/
 │   └── seed_data.py     # sample data seeder
 ├── static/css/
 │   └── style.css
-├── templates/
-│   ├── base.html
-│   ├── dashboard.html
-│   ├── batches.html
-│   ├── batch_detail.html
-│   └── add_batch.html
-└── docs/                # university docs, guidelines etc
+└── templates/
+    ├── base.html
+    ├── dashboard.html
+    ├── batches.html
+    ├── batch_detail.html
+    └── add_batch.html
 ```
 
 ## Database schema
